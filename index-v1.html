@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pathway Basecamp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Plus+Jakarta+Sans:wght@400;500;700&family=Kalam:wght@700&display=swap">
+<style>
+/* Layout: full-screen layered trail scene (sky layer + foreground frame), camera travels on click; paper field-notes below */
+:root{
+  --night:#1b2140;
+  --night-2:#2b3366;
+  --ember:#ec7a2f;
+  --ember-deep:#c85a17;
+  --paper:#f3e8d2;
+  --paper-2:#e6d3ae;
+  --ink:#2a2018;
+  --ink-soft:#6b5a48;
+  --pine:#2e4a35;
+  --cream:#fff7ea;
+  --f-display:"Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-sign:"Kalam", "Comic Sans MS", cursive;
+  --ease-cam:cubic-bezier(.65,.02,.2,1);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--night);color:var(--cream);font-family:var(--f-body)}
+body{margin:0;overflow-x:hidden}
+body.locked{overflow:hidden}
+
+/* ---------- HERO SCENE ---------- */
+.hero{position:relative;height:165vh}
+.scene{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--night)}
+.layer{position:absolute;inset:0;will-change:transform}
+.bg-cam{position:absolute;left:0;top:0;transform-origin:0 0;transition:transform 1.6s var(--ease-cam)}
+.bg-cam img{display:block;width:100%;height:100%;max-width:none;user-select:none;-webkit-user-drag:none}
+.fg-cam{transform-origin:50% 100%;transition:transform 1.5s var(--ease-cam),opacity 1s ease .25s}
+.fg-par{transform-origin:0 100%}
+.stage{position:absolute;bottom:0;left:-24px;width:max(100vw,calc(100vh * 1.7768));aspect-ratio:1672/941;container-type:inline-size;max-width:none}
+.stage>img{position:absolute;inset:0;width:100%;height:100%;max-width:none;pointer-events:none;user-select:none}
+
+/* sky tint that warms as the camera climbs */
+.tint{position:absolute;inset:0;pointer-events:none;background:radial-gradient(120% 80% at 70% 10%,rgba(255,190,120,.0),rgba(27,33,64,.35));transition:opacity 1.4s ease, background 1.4s ease}
+body[data-view="gabung"] .tint{background:radial-gradient(90% 70% at 80% 20%,rgba(255,214,150,.35),rgba(27,33,64,.1))}
+.vignette{position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(20,24,48,.55) 0%,rgba(20,24,48,0) 38%)}
+
+/* destination markers live inside the bg camera, counter-scaled */
+.marker{position:absolute;transform:translate(-50%,-100%) scale(calc(1 / var(--s,1)));transform-origin:50% 100%;opacity:0;transition:opacity .6s ease;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px}
+.marker span{font:700 13px/1.2 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);background:var(--paper);padding:6px 10px;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.35);white-space:nowrap}
+.marker i{width:14px;height:14px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 0 rgba(236,122,47,.7);animation:ping 1.8s infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 rgba(236,122,47,.7)}100%{box-shadow:0 0 0 18px rgba(236,122,47,0)}}
+body[data-view="tentang"] .marker[data-for="tentang"],
+body[data-view="cara"] .marker[data-for="cara"],
+body[data-view="komunitas"] .marker[data-for="komunitas"],
+body[data-view="gabung"] .marker[data-for="gabung"]{opacity:1;transition-delay:1.1s}
+
+/* foreground camera moves per destination */
+body[data-view="tentang"] .fg-cam{transform:translate(60%,4%) scale(1.25);opacity:0}
+body[data-view="cara"] .fg-cam{transform:translateY(10%) scale(2.6);opacity:0}
+body[data-view="komunitas"] .fg-cam{transform:translate(38%,24%) scale(1.5);opacity:0}
+body[data-view="gabung"] .fg-cam{transform:translateY(80%);opacity:0}
+
+/* signpost boards (hotspots placed on the painted boards) */
+.board{position:absolute;display:grid;place-items:center;background:none;border:0;padding:0;cursor:pointer;color:#3a2412;font:700 1.32cqw/1 var(--f-sign);letter-spacing:.01em;text-shadow:0 1px 0 rgba(255,230,190,.55);border-radius:4px}
+.board b{display:block;transform:rotate(var(--r));transition:transform .25s ease, color .25s ease;font-weight:700;white-space:nowrap}
+.board::after{content:"";position:absolute;inset:-6% -2%;border-radius:6px;background:radial-gradient(closest-side,rgba(255,220,150,.55),rgba(255,220,150,0));opacity:0;transition:opacity .25s ease;pointer-events:none;mix-blend-mode:screen}
+.board:hover::after,.board:focus-visible::after{opacity:1}
+.board:hover b,.board:focus-visible b{transform:rotate(var(--r)) scale(1.08);color:#1c0f05}
+.board:focus-visible{outline:2px dashed var(--cream);outline-offset:4px}
+.b1{left:3.4%;top:37.2%;width:10.3%;height:7%;--r:4deg}
+.b2{left:4.5%;top:46%;width:10.2%;height:6.2%;--r:-2deg}
+.b3{left:2.6%;top:52.8%;width:7.6%;height:6.6%;--r:5deg;font-size:1.12cqw}
+.hint{position:absolute;left:3.2%;top:29.5%;font:700 1.15cqw/1.15 var(--f-sign);color:var(--cream);text-shadow:0 2px 8px rgba(0,0,0,.6);transform:rotate(-4deg);pointer-events:none}
+.hint svg{display:inline-block;width:2.2cqw;height:2.2cqw;vertical-align:middle;margin-left:.3cqw}
+
+/* hero copy */
+.topbar{position:absolute;inset:0 0 auto 0;display:flex;justify-content:space-between;align-items:center;padding:calc(18px + env(safe-area-inset-top,0px)) clamp(16px,5vw,64px) 0;z-index:5}
+.brand{display:flex;align-items:center;gap:10px;font:800 22px/1 var(--f-display);color:var(--cream);text-decoration:none;letter-spacing:-.01em}
+.brand svg{width:26px;height:26px}
+.btn-ghost{font:600 14px/1 var(--f-body);color:var(--cream);background:rgba(20,24,48,.25);border:1.5px solid rgba(255,247,234,.7);padding:11px 20px;border-radius:999px;cursor:pointer;backdrop-filter:blur(4px)}
+.btn-ghost:hover{background:rgba(255,247,234,.15)}
+.copy{position:absolute;left:max(16px,calc(max(100vw,100vh * 1.7768) * .19));top:clamp(96px,16vh,160px);width:min(600px,calc(100vw - 32px));z-index:4;transition:opacity .6s ease, transform .6s ease}
+.eyebrow{font:700 12px/1 var(--f-body);letter-spacing:.18em;text-transform:uppercase;color:#ffd2a8;margin:0 0 16px}
+h1{font:800 clamp(34px,4.8vw,72px)/1 var(--f-display);letter-spacing:-.025em;margin:0;text-wrap:balance;text-shadow:0 4px 30px rgba(20,24,48,.45)}
+.lede{font:500 clamp(15px,1.35vw,19px)/1.55 var(--f-body);color:rgba(255,247,234,.9);margin:18px 0 26px;max-width:46ch;text-shadow:0 2px 12px rgba(20,24,48,.5)}
+.cta{display:inline-flex;align-items:center;gap:10px;font:700 16px/1 var(--f-body);color:#2a1606;background:var(--ember);border:0;padding:16px 26px;border-radius:999px;cursor:pointer;box-shadow:0 10px 30px rgba(200,90,23,.45);transition:transform .2s ease, background .2s ease}
+.cta:hover{background:#f48b44;transform:translateY(-2px)}
+.cta:focus-visible,.btn-ghost:focus-visible,.back:focus-visible{outline:2px solid var(--cream);outline-offset:3px}
+.cta svg{width:18px;height:18px}
+body:not([data-view="home"]) .copy{opacity:0;transform:translateY(-20px);pointer-events:none}
+body:not([data-view="home"]) .scroll-cue{opacity:0}
+.scroll-cue{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);font:600 12px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,247,234,.85);z-index:4;display:flex;flex-direction:column;align-items:center;gap:8px;transition:opacity .4s}
+.scroll-cue i{width:1.5px;height:28px;background:linear-gradient(var(--cream),transparent);animation:drip 1.8s infinite}
+@keyframes drip{0%{transform:scaleY(0);transform-origin:top}50%{transform:scaleY(1);transform-origin:top}100%{transform:scaleY(0);transform-origin:bottom}}
+
+/* destination panel: a field-notes card */
+.panel{position:absolute;z-index:6;left:clamp(16px,5vw,72px);bottom:clamp(16px,6vh,64px);width:min(440px,calc(100vw - 32px));max-height:calc(100svh - 120px);overflow:auto;background:var(--paper);color:var(--ink);border-radius:6px;padding:26px 26px 22px;box-shadow:0 30px 60px rgba(10,12,30,.45);opacity:0;transform:translateY(24px);transition:opacity .5s ease, transform .5s ease;pointer-events:none;border-top:6px solid var(--ember)}
+.panel.show{opacity:1;transform:none;pointer-events:auto;transition-delay:1s}
+.panel .alt{display:flex;justify-content:space-between;align-items:baseline;font:700 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--ember-deep);margin-bottom:10px;font-variant-numeric:tabular-nums}
+.panel h2{font:800 30px/1.05 var(--f-display);letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+.panel p{font:400 15px/1.6 var(--f-body);color:var(--ink-soft);margin:0 0 14px}
+.panel ul{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:10px}
+.panel li{display:grid;grid-template-columns:auto 1fr;gap:12px;font:500 14.5px/1.45 var(--f-body);color:var(--ink)}
+.panel li em{font:700 11px/1.6 var(--f-body);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:var(--pine);background:var(--paper-2);padding:2px 8px;border-radius:3px;height:fit-content;white-space:nowrap}
+.back{display:inline-flex;align-items:center;gap:8px;font:700 14px/1 var(--f-body);color:var(--ink);background:none;border:1.5px solid var(--ink);padding:11px 16px;border-radius:999px;cursor:pointer}
+.back:hover{background:var(--ink);color:var(--paper)}
+.form{display:grid;gap:10px;margin:4px 0 16px}
+.form label{font:700 12px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.form input,.form select{width:100%;font:500 15px/1.2 var(--f-body);color:var(--ink);background:#fffaf0;border:1.5px solid #cdb68e;border-radius:4px;padding:11px 12px;margin-top:6px;color-scheme:light}
+.form input:focus,.form select:focus{outline:2px solid var(--ember);outline-offset:1px;border-color:transparent}
+.form .cta{justify-content:center;margin-top:6px}
+.note{font:500 13px/1.5 var(--f-body);color:var(--pine);background:#e4ead9;border-radius:4px;padding:10px 12px;margin:0 0 14px}
+
+/* ---------- FIELD NOTES SECTION ---------- */
+.notes{position:relative;z-index:2;background:var(--paper);color:var(--ink);padding-block:clamp(64px,10vw,120px);padding-inline:clamp(16px,6vw,80px);margin-top:-1px}
+.notes::before{content:"";position:absolute;left:0;right:0;top:-60px;height:61px;background:var(--paper);clip-path:polygon(0 60%,8% 40%,17% 55%,28% 25%,38% 50%,50% 20%,61% 48%,72% 30%,83% 52%,92% 35%,100% 55%,100% 100%,0 100%)}
+.notes-head{max-width:760px;margin:0 0 48px}
+.notes-head .eyebrow{color:var(--ember-deep)}
+.notes h2{font:800 clamp(30px,4.4vw,56px)/1.02 var(--f-display);letter-spacing:-.02em;margin:0 0 14px;text-wrap:balance}
+.notes-head p{font:400 17px/1.6 var(--f-body);color:var(--ink-soft);margin:0;max-width:60ch}
+.posts{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;position:relative}
+.posts::before{content:"";position:absolute;left:0;right:0;top:22px;border-top:2.5px dashed #b99a6a}
+.post{position:relative;display:flex;flex-direction:column;gap:10px;min-width:0}
+.post .pin{width:46px;height:46px;border-radius:50%;background:var(--paper);border:2.5px solid var(--ink);display:grid;place-items:center;font:800 15px/1 var(--f-display);position:relative}
+.post:last-child .pin{background:var(--ember);border-color:var(--ember-deep);color:#2a1606}
+.post .mdpl{font:700 11px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-variant-numeric:tabular-nums;margin-top:6px}
+.post h3{font:800 22px/1.1 var(--f-display);margin:0}
+.post p{font:400 15px/1.55 var(--f-body);color:var(--ink-soft);margin:0}
+.rule{margin-top:56px;display:flex;flex-wrap:wrap;gap:16px 28px;align-items:center;justify-content:space-between;border-top:1.5px solid #cdb68e;padding-top:28px}
+.rule p{font:600 16px/1.5 var(--f-body);margin:0;max-width:58ch}
+.rule p span{color:var(--ember-deep)}
+footer{background:var(--paper);color:var(--ink-soft);font:500 13px/1.5 var(--f-body);padding-block:0 32px;padding-inline:clamp(16px,6vw,80px)}
+
+/* ---------- INTRO ---------- */
+@media (prefers-reduced-motion:no-preference){
+  .bg-intro{animation:bgIn 2.4s var(--ease-cam) both}
+  .fg-intro{animation:fgIn 1.9s var(--ease-cam) .15s both}
+  .copy>*{animation:up .9s ease both}
+  .copy>*:nth-child(2){animation-delay:.6s}.copy>*:nth-child(3){animation-delay:.75s}.copy>*:nth-child(4){animation-delay:.9s}.copy>*:nth-child(1){animation-delay:.45s}
+  .board b,.hint{animation:paint .7s ease both}
+  .b1 b{animation-delay:1.5s}.b2 b{animation-delay:1.65s}.b3 b{animation-delay:1.8s}.hint{animation-delay:2.1s}
+}
+@keyframes bgIn{from{transform:scale(1.18) translateY(3%);filter:saturate(.6) brightness(.7)}to{transform:none;filter:none}}
+@keyframes fgIn{from{transform:translateY(22%)}to{transform:none}}
+@keyframes up{from{opacity:.001;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes paint{from{opacity:.001;filter:blur(3px)}to{opacity:1;filter:none}}
+@media (prefers-reduced-motion:reduce){
+  .bg-cam,.fg-cam,.panel,.copy{transition-duration:.01s!important;transition-delay:0s!important}
+  .marker i,.scroll-cue i{animation:none}
+}
+
+/* ---------- SMALL SCREENS ---------- */
+@media (max-width:760px){
+  .stage{left:-12px;width:calc(68svh * 1.7768)}
+  .copy{top:88px;left:16px}
+  h1{font-size:34px}
+  .lede{margin:12px 0 18px}
+  .posts{grid-template-columns:1fr;gap:28px}
+  .posts::before{left:22px;right:auto;top:0;bottom:0;border-top:0;border-left:2.5px dashed #b99a6a}
+  .post{display:grid;grid-template-columns:46px 1fr;column-gap:16px;row-gap:4px}
+  .post .pin{grid-row:span 3}
+  .post .mdpl{margin-top:2px}
+  .panel{bottom:16px;padding:20px 18px 18px;max-height:62svh}
+  .panel h2{font-size:24px}
+  .scroll-cue{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="hero" id="top">
+  <div class="scene" id="scene">
+    <div class="layer bg-intro"><div class="layer" id="bgPar">
+      <div class="bg-cam" id="bgCam">
+        <img src="bg.webp" alt="Pemandangan jalur pendakian saat matahari terbit, dengan danau berkabut dan puncak berbendera merah">
+        <div class="marker" data-for="tentang" style="left:17%;top:60%"><span>Lereng basecamp</span><i></i></div>
+        <div class="marker" data-for="cara" style="left:79%;top:52%"><span>Jalur Pos 1 → Puncak</span><i></i></div>
+        <div class="marker" data-for="komunitas" style="left:30%;top:61%"><span>Tepi danau · titik kumpul</span><i></i></div>
+        <div class="marker" data-for="gabung" style="left:86.3%;top:20%"><span>Puncak</span><i></i></div>
+      </div>
+    </div></div>
+    <div class="tint"></div>
+    <div class="vignette"></div>
+
+    <div class="layer fg-intro"><div class="layer fg-cam" id="fgCam"><div class="layer fg-par" id="fgPar">
+      <div class="stage">
+        <img src="fg.webp" alt="">
+        <div class="hint">Pilih arahmu<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 4c3 6 7 9 13 11"/><path d="M13 16l5-1-1-5"/></svg></div>
+        <button class="board b1" data-go="tentang" aria-label="Tentang Pathway"><b>Tentang</b></button>
+        <button class="board b2" data-go="cara" aria-label="Cara kerja Pathway"><b>Cara Kerja</b></button>
+        <button class="board b3" data-go="komunitas" aria-label="Komunitas Pathway"><b>Komunitas</b></button>
+      </div>
+    </div></div></div>
+
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Pathway beranda">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 27 L13 9 L18 17 L22 11 L29 27 Z" fill="#ec7a2f"/><path d="M13 9 L13 3 L18 5 L13 7" fill="#fff7ea"/></svg>
+        Pathway
+      </a>
+      <button class="btn-ghost" type="button" id="masuk">Masuk</button>
+    </header>
+
+    <div class="copy">
+      <p class="eyebrow">Komunitas pengembangan diri mahasiswa</p>
+      <h1>Setiap puncak dimulai dari satu langkah</h1>
+      <p class="lede">Ubah goal yang masih abstrak jadi langkah harian, jalani bareng circle kecil, dan kumpulkan bukti bahwa kamu benar-benar tumbuh.</p>
+      <button class="cta" data-go="gabung">Gabung Pathway
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+
+    <div class="scroll-cue" aria-hidden="true">Gulir untuk mendaki<i></i></div>
+
+    <!-- destination panels -->
+    <section class="panel" id="p-tentang" aria-labelledby="h-tentang" hidden>
+      <div class="alt"><span>Basecamp</span><span>1.240 mdpl</span></div>
+      <h2 id="h-tentang">Semua orang mulai dari basecamp</h2>
+      <p>Pathway adalah komunitas pengembangan diri untuk mahasiswa. Kami membantu goal yang besar dipecah jadi langkah kecil, dijalani konsisten, lalu dibuktikan.</p>
+      <ul>
+        <li><em>Prinsip</em>Tidak harus sempurna. Cukup konsisten.</li>
+        <li><em>Cara</em>Tumbuh bareng circle kecil, bukan sendirian.</li>
+        <li><em>Hasil</em>Setiap langkah tercatat dan punya bukti.</li>
+      </ul>
+      <button class="back" data-go="home">← Kembali ke basecamp</button>
+    </section>
+
+    <section class="panel" id="p-cara" aria-labelledby="h-cara" hidden>
+      <div class="alt"><span>Menyusuri jalur</span><span>4 pos</span></div>
+      <h2 id="h-cara">Dari goal sampai bukti, satu jalur</h2>
+      <ul>
+        <li><em>Basecamp</em>Tentukan satu goal dan alasannya.</li>
+        <li><em>Pos 1</em>Pecah jadi habit harian dan to-do sekali jalan.</li>
+        <li><em>Pos 2</em>Refleksikan apa yang kamu pelajari di titik penting.</li>
+        <li><em>Puncak</em>Unggah bukti, raih achievement, masuk portfolio.</li>
+      </ul>
+      <p class="note">Habit dianggap terbentuk kalau minimal 80% hari terpenuhi. Streak putus tidak menggagalkan perjalananmu.</p>
+      <button class="back" data-go="home">← Kembali ke basecamp</button>
+    </section>
+
+    <section class="panel" id="p-komunitas" aria-labelledby="h-komunitas" hidden>
+      <div class="alt"><span>Titik kumpul</span><span>Tepi danau</span></div>
+      <h2 id="h-komunitas">Mendaki lebih jauh kalau bareng</h2>
+      <ul>
+        <li><em>Circle</em>Kelompok kecil 5–8 orang dengan goal searah.</li>
+        <li><em>Meet</em>Pertemuan rutin untuk check-in dan saling dorong.</li>
+        <li><em>Challenge</em>Program 21 hari dengan bukti di akhirnya.</li>
+        <li><em>Event</em>Sesi belajar dan workshop bersama pembicara.</li>
+      </ul>
+      <button class="back" data-go="home">← Kembali ke basecamp</button>
+    </section>
+
+    <section class="panel" id="p-gabung" aria-labelledby="h-gabung" hidden>
+      <div class="alt"><span>Puncak</span><span>3.142 mdpl</span></div>
+      <h2 id="h-gabung">Daftar ke pilot circle pertama</h2>
+      <p>Kami membuka satu circle kecil untuk perjalanan 21 hari. Tinggalkan kontakmu dan kami kabari jadwalnya.</p>
+      <form class="form" id="joinForm" novalidate>
+        <label for="nama">Nama<input id="nama" name="nama" autocomplete="name" placeholder="Nama panggilan" required></label>
+        <label for="kontak">Email atau WhatsApp<input id="kontak" name="kontak" placeholder="nama@kampus.ac.id" required></label>
+        <label for="bidang">Mau tumbuh di bidang apa?
+          <select id="bidang" name="bidang">
+            <option>Public speaking</option><option>Siap magang</option><option>Persiapan beasiswa</option><option>Leadership</option><option>Lainnya</option>
+          </select></label>
+        <button class="cta" type="submit">Daftar sekarang</button>
+      </form>
+      <p class="note" id="thanks" hidden></p>
+      <button class="back" data-go="home">← Kembali ke basecamp</button>
+    </section>
+  </div>
+</div>
+
+<main class="notes" id="jalur">
+  <div class="notes-head">
+    <p class="eyebrow">Peta jalur</p>
+    <h2>Empat pos menuju puncak</h2>
+    <p>Setiap goal di Pathway berjalan di jalur yang sama. Kamu tahu sedang di pos mana, apa langkah berikutnya, dan bukti apa yang menunggu di puncak.</p>
+  </div>
+  <ol class="posts">
+    <li class="post"><div class="pin">B</div><div class="mdpl">Basecamp · 1.240 mdpl</div><h3>Tentukan goal</h3><p>Satu hal yang ingin kamu capai, alasannya, dan tenggat waktunya. Bisa mulai dari template program.</p></li>
+    <li class="post"><div class="pin">1</div><div class="mdpl">Pos 1 · 1.780 mdpl</div><h3>Jalankan habit & to-do</h3><p>Action item harian, maksimal tiga sehari. Centang, lihat streak, dan biarkan heatmap terisi pelan-pelan.</p></li>
+    <li class="post"><div class="pin">2</div><div class="mdpl">Pos 2 · 2.450 mdpl</div><h3>Refleksi</h3><p>Di titik penting, tulis apa yang berhasil, apa yang sulit, dan langkah berikutnya.</p></li>
+    <li class="post"><div class="pin">▲</div><div class="mdpl">Puncak · 3.142 mdpl</div><h3>Buktikan</h3><p>Unggah sertifikat, foto, atau link. Goal tercapai jadi achievement dan masuk portfolio.</p></li>
+  </ol>
+  <div class="rule">
+    <p>Goal tercapai saat <span>habit terbentuk</span>, <span>to-do selesai</span>, dan <span>bukti terunggah</span>.</p>
+    <button class="cta" data-go="gabung">Mulai mendaki
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+  </div>
+</main>
+<footer>Prototype landing page Pathway · ketinggian mdpl hanya ilustrasi.</footer>
+
+<script>
+(() => {
+  const AR = 1916 / 821;
+  const bgCam = document.getElementById('bgCam');
+  const bgPar = document.getElementById('bgPar');
+  const fgPar = document.getElementById('fgPar');
+  const scene = document.getElementById('scene');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const OVER = 1.1;
+  const targets = {
+    home:      null,
+    tentang:   { x: .17, y: .62, s: 1.45 },
+    cara:      { x: .76, y: .62, s: 1.9 },
+    komunitas: { x: .30, y: .64, s: 2.1 },
+    gabung:    { x: .863, y: .21, s: 2.5 }
+  };
+  let box = { W: 0, H: 0, L: 0, T: 0 };
+  let view = 'home';
+
+  function layout() {
+    const vw = scene.clientWidth, vh = scene.clientHeight;
+    const W = Math.max(vw, vh * AR) * OVER, H = W / AR;
+    box = { W, H, L: (vw - W) / 2, T: (vh - H) / 2 };
+    Object.assign(bgCam.style, { width: W + 'px', height: H + 'px', left: box.L + 'px', top: box.T + 'px' });
+    applyCamera(true);
+  }
+
+  function applyCamera(instant) {
+    const t = targets[view];
+    const vw = scene.clientWidth, vh = scene.clientHeight;
+    let tx = 0, ty = 0, s = 1;
+    if (t) {
+      s = t.s;
+      const narrow = vw < 760;
+      const fx = narrow ? .5 : .64, fy = narrow ? .3 : .42;
+      tx = fx * vw - box.L - s * t.x * box.W;
+      ty = fy * vh - box.T - s * t.y * box.H;
+      const m = 24;
+      tx = Math.min(tx, -box.L - m); tx = Math.max(tx, vw + m - box.L - s * box.W);
+      ty = Math.min(ty, -box.T - m); ty = Math.max(ty, vh + m - box.T - s * box.H);
+    }
+    if (instant) bgCam.style.transition = 'none';
+    bgCam.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    bgCam.style.setProperty('--s', s);
+    if (instant) { bgCam.offsetHeight; bgCam.style.transition = ''; }
+  }
+
+  function go(next) {
+    if (!targets.hasOwnProperty(next) || next === view) return;
+    if (next !== 'home' && window.scrollY > 2) {
+      window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+      setTimeout(() => go(next), reduce ? 0 : 450);
+      return;
+    }
+    view = next;
+    document.body.dataset.view = view;
+    document.body.classList.toggle('locked', view !== 'home');
+    document.querySelectorAll('.panel').forEach(p => {
+      const on = p.id === 'p-' + view;
+      if (on) { p.hidden = false; requestAnimationFrame(() => requestAnimationFrame(() => p.classList.add('show'))); }
+      else { p.classList.remove('show'); setTimeout(() => { if (!p.classList.contains('show')) p.hidden = true; }, 500); }
+    });
+    applyCamera(false);
+    const panel = document.getElementById('p-' + view);
+    if (panel) setTimeout(() => panel.querySelector('h2').focus({ preventScroll: true }), reduce ? 0 : 1100);
+  }
+
+  document.querySelectorAll('.panel h2').forEach(h => h.tabIndex = -1);
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-go]');
+    if (b) { e.preventDefault(); go(b.dataset.go); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') go('home'); });
+  document.getElementById('masuk').addEventListener('click', () => go('gabung'));
+
+  document.getElementById('joinForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const nama = document.getElementById('nama').value.trim();
+    const kontak = document.getElementById('kontak').value.trim();
+    const out = document.getElementById('thanks');
+    out.hidden = false;
+    if (!nama || !kontak) { out.textContent = 'Isi nama dan kontak dulu supaya kami bisa mengabarimu.'; return; }
+    out.textContent = `Terima kasih, ${nama}. Ini masih prototype, jadi datamu belum dikirim ke mana pun.`;
+  });
+
+  /* parallax: mouse + scroll */
+  let mx = 0, my = 0, cx = 0, cy = 0, sy = 0;
+  if (!reduce) {
+    window.addEventListener('pointermove', e => {
+      if (e.pointerType !== 'mouse') return;
+      mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5;
+    }, { passive: true });
+  }
+  function frame() {
+    cx += (mx - cx) * .06; cy += (my - cy) * .06;
+    sy = reduce ? 0 : Math.min(window.scrollY, innerHeight * 1.2);
+    const p = sy / innerHeight;
+    bgPar.style.transform = `translate3d(${-cx * 22}px, ${-cy * 14 - p * 40}px, 0) scale(${1 + p * .06})`;
+    fgPar.style.transform = `translate3d(${-cx * 60}px, ${-cy * 26 + p * innerHeight * .45}px, 0) scale(1.05)`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  addEventListener('resize', layout);
+  document.body.dataset.view = 'home';
+  layout();
+  const h = location.hash.replace('#', '');
+  if (targets[h]) setTimeout(() => go(h), 400);
+})();
+</script>
+</body>
+</html>
